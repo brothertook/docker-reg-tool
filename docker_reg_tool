@@ -67,9 +67,15 @@ shift
 CREDS=""
 DOCKER_CONFIG="$HOME/.docker/config.json"
 
+SEC_FLAG=""
+
+if [[ ${INSECURE_REGISTRY} ]] && [[ $(isTruthy "$INSECURE_REGISTRY") ]]; then
+    SEC_FLAG="-k"
+fi
+
 if [[ ${BASIC_AUTH} ]]; then
     CREDS="Authorization: Basic $(echo -n $BASIC_AUTH|base64)"
-elif [[ -f "$DOCKER_CONFIG" ]]; then
+elif [[ -f "$DOCKER_CONFIG" ]] && [ $SEC_FLAG  -eq '' ]; then
     AUTH_INFO=$(jq -r '.auths["'$REG'"].auth' < "$DOCKER_CONFIG")
     if [ "$AUTH_INFO" = "null" ]; then
         AUTH_INFO=$(jq -r '.auths."'$PROTO$REG'".auth' < "$DOCKER_CONFIG")
@@ -81,11 +87,6 @@ elif [[ -f "$DOCKER_CONFIG" ]]; then
     CREDS="Authorization: Basic $AUTH_INFO"
 fi
 
-SEC_FLAG=""
-
-if [[ ${INSECURE_REGISTRY} ]] && [[ $(isTruthy "$INSECURE_REGISTRY") ]]; then
-    SEC_FLAG="-k"
-fi
 
 function curlCmd {
     curl "$SEC_FLAG" --header "$CREDS" $*
